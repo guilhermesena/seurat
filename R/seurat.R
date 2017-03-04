@@ -4561,3 +4561,89 @@ setMethod("MeanVarPlot", signature = "seurat",
             }
           }
 )
+
+#' Ontology analysis of marker genes
+#' 
+#' A function that uses TopGO to do ontology enrichment test of most statistically
+#' significant marker genes of particular clusters.
+#' 
+#' @param markers A data frame object with columns gene, p_val and cluster as returned by FindMarkers
+#' @param clust.num Cluster number ontology enrichment analysis should be done
+#' @param pval.cutoff p-value above which marker genes will not be counted for enrichment analysis
+#' @import topGO 
+#' @export
+setGeneric("OntologyAnalysis", function(markers, clust.num, pval.cutoff = 1e-5) standardGeneric("OntologyAnalysis"))
+#' @export
+setMethod("OntologyAnalysis", "seurat", function(markers, clust.num, pval.cutoff = 1e-5) {
+    # Creates a list of genes with p-values of specific clusters
+    # And ones for genes that were not said to be differentially expressed in FindMarkers
+    gene.names <- markers$gene
+    gene.names <- gene.names[!duplicated(gene.names)]
+    markers.vector <- rep(1, length(gene.names))
+    names(markers.vector) <- gene.names
+    markers.clust <- markers %>% filter(cluster == clust.num)
+    for(i in gene.names[gene.names %in% markers.clust$gene]) {
+      markers.vector[i] <- markers.clust[markers.clust$gene == i, ]$p_val
+    }
+    
+    # Significant gene choice function
+    sig.genes <- function(input) {
+      return (input < pval.cutoff)
+    }
+    
+    # Builds GO DAG
+    go.data <- new("topGOdata",
+                   ontology = "BP",
+                   allGenes = markers.vector,
+                   geneSel = sig.genes,
+                   nodeSize = 10,
+                   annot = annFUN.org,
+                   mapping = "org.Hs.eg.db",
+                   ID = "symbol"
+    )
+    
+    # Returns an object to be used on printing graphs and tables
+    ret <- list()
+    ret[["ontology"]] <- go.data
+    ret[["test"]] <- runTest(go.data, algorithm = "classic", statistic = "fisher")
+    return (ret)
+  }
+)
+
+#' Plot Ontology Graph from OntologyAnalysis
+#' 
+#' A function that gets the output of a TopGO analysis as outputted by OntologyAnalysis
+#' and prints the enrichment DAG. 
+#' 
+#' @param ontology.result A list with two topGO objects: ontology and test as returned by OntologyAnalysis
+#' @import topGO 
+#' @export
+setGeneric("PrintOntologyGraph", function (ontology.result) standardGeneric("PrintOntologyGraph"))
+#' @export
+setMethod("PrintOntologyGraph", "seurat",  function (ontology.result) {
+    showSigOfNodes(ontology.result[["ontology"]], score(ontology.result[["test"]]), firstSigNodes=10, useInfo="all")
+  }
+)
+
+#' Get Ontology Table from Ontology Analysis
+#' 
+#' Creates a data frame with GO terms and enrichment p-values as given
+#' by Fisher's exact test. It takes as an input the result of OntologyAnalysos
+#' 
+#' @param ontology.result A list with two topGO objects: ontology and test as returned by OntologyAnalysis
+#' @param pval.cutoff p-value above which GO terms will be excluted. Default is 1
+#' @import topGO 
+#' @export
+setGeneric("GetOntologyTable", function (ontology.result, pval.cutoff = 1) standardGeneric("GetOntologyTable"))
+#' @export
+#' 
+setMethod("GetOntologyTable", "seurat",  function (ontology.result, pval.cutoff = 1) {
+    ret <- GenTable(ontology.result[["ontology"]], 
+                    pval = ontology.result[["test"]], 
+                    orderBy = "pval", 
+                    ranksOf = "pval", 
+                    topNodes = 1000
+    )
+    return(ret %>% filter(pval <= pval.cutoff))
+  }
+)
