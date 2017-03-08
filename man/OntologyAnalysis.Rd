@@ -4,14 +4,14 @@
 \alias{OntologyAnalysis}
 \title{Ontology analysis of marker genes}
 \usage{
-OntologyAnalysis(markers, clust.num, pval.cutoff = 1e-05)
+OntologyAnalysis(object, clust.num, pval.cutoff = 1e-05)
 }
 \arguments{
-\item{markers}{A data frame object with columns gene, p_val and cluster as returned by FindMarkers}
-
 \item{clust.num}{Cluster number ontology enrichment analysis should be done}
 
 \item{pval.cutoff}{p-value above which marker genes will not be counted for enrichment analysis}
+
+\item{markers}{A data frame object with columns gene, p_val and cluster as returned by FindMarkers}
 }
 \description{
 A function that uses TopGO to do ontology enrichment test of most statistically

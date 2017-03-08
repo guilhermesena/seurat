@@ -59,7 +59,9 @@ seurat <- setClass("seurat", slots =
                        jackStraw.fakePC = "data.frame",jackStraw.empP.full="data.frame",pca.x.full="data.frame", kmeans.col="list",mean.var="data.frame", imputed="data.frame",mix.probs="data.frame",
                        mix.param="data.frame",final.prob="data.frame",insitu.matrix="data.frame",
                        tsne.rot="data.frame", ica.rot="data.frame", ica.x="data.frame", ica.obj="list",cell.names="vector",cluster.tree="list",
-                       snn.sparse="dgCMatrix", snn.dense="matrix", snn.k="numeric"))
+                       snn.sparse="dgCMatrix", snn.dense="matrix", snn.k="numeric",
+                       cluster.markers="data.frame",
+                       ontology.results="list"))
 
 
 #' Setup Seurat object
@@ -1936,7 +1938,7 @@ setMethod("FindMarkersNode", "seurat",
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling. Not activated by default (set to Inf)
 #' @param random.seed Random seed for downsampling
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
-#' @return Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
+#' @return Seurat Object with cluster.markers object filled
 #' @import VGAM
 #' @import pbapply
 #' @export
@@ -2046,7 +2048,7 @@ setMethod("FindMarkers", "seurat",
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
 #' @param do.print FALSE by default. If TRUE, outputs updates on progress.
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
-#' @return Matrix containing a ranked list of putative markers, and associated
+#' @return A seurat object with marker genes found for each cluster on slot cluster.markers
 #' statistics (p-values, ROC score, etc.)
 #' @export
 setGeneric("FindAllMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
@@ -2071,19 +2073,22 @@ setMethod("FindAllMarkers","seurat",
             gde.all=data.frame()
             for(i in 1:length(idents.all)) {
               gde=genes.de[[i]]
-              if (nrow(gde)>0) {
+              if (length(gde)>0) {
                 if (test.use=="roc") {
                   gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
                 } else {
                   gde=gde[order(gde$p_val,-gde$avg_diff),]
                   gde=subset(gde,p_val<return.thresh)
                 }
-                if (nrow(gde)>0) gde$cluster=idents.all[i]; gde$gene=rownames(gde)
-                if (nrow(gde)>0) gde.all=rbind(gde.all,gde)
+                if (length(gde)>0) gde$cluster=idents.all[i]; gde$gene=rownames(gde)
+                if (length(gde)>0) gde.all=rbind(gde.all,gde)
               }
             }
-            if(only.pos) return(subset(gde.all,avg_diff>0))
-            return(gde.all)
+            if(only.pos) {
+              gde.all <- subset(gde.all,avg_diff>0)
+            }
+            object@cluster.markers <- gde.all
+            return(object)
           }
 )
 
@@ -4570,18 +4575,19 @@ setMethod("MeanVarPlot", signature = "seurat",
 #' @param markers A data frame object with columns gene, p_val and cluster as returned by FindMarkers
 #' @param clust.num Cluster number ontology enrichment analysis should be done
 #' @param pval.cutoff p-value above which marker genes will not be counted for enrichment analysis
-#' @import topGO 
+#' @importClassesFrom topGO topGOdata
+#' @importFrom topGO runTest 
 #' @export
-setGeneric("OntologyAnalysis", function(markers, clust.num, pval.cutoff = 1e-5) standardGeneric("OntologyAnalysis"))
+setGeneric("OntologyAnalysis", function(object,clust.num, pval.cutoff = 1e-5) standardGeneric("OntologyAnalysis"))
 #' @export
-setMethod("OntologyAnalysis", "seurat", function(markers, clust.num, pval.cutoff = 1e-5) {
+setMethod("OntologyAnalysis", "seurat", function(object, clust.num, pval.cutoff = 1e-5) {
     # Creates a list of genes with p-values of specific clusters
     # And ones for genes that were not said to be differentially expressed in FindMarkers
-    gene.names <- markers$gene
+    gene.names <- object@cluster.markers$gene
     gene.names <- gene.names[!duplicated(gene.names)]
     markers.vector <- rep(1, length(gene.names))
     names(markers.vector) <- gene.names
-    markers.clust <- markers %>% filter(cluster == clust.num)
+    markers.clust <- object@cluster.markers %>% filter(cluster == clust.num)
     for(i in gene.names[gene.names %in% markers.clust$gene]) {
       markers.vector[i] <- markers.clust[markers.clust$gene == i, ]$p_val
     }
@@ -4606,7 +4612,9 @@ setMethod("OntologyAnalysis", "seurat", function(markers, clust.num, pval.cutoff
     ret <- list()
     ret[["ontology"]] <- go.data
     ret[["test"]] <- runTest(go.data, algorithm = "classic", statistic = "fisher")
-    return (ret)
+    object@ontology.results <- ret
+    
+    return(object)
   }
 )
 
@@ -4615,13 +4623,17 @@ setMethod("OntologyAnalysis", "seurat", function(markers, clust.num, pval.cutoff
 #' A function that gets the output of a TopGO analysis as outputted by OntologyAnalysis
 #' and prints the enrichment DAG. 
 #' 
-#' @param ontology.result A list with two topGO objects: ontology and test as returned by OntologyAnalysis
-#' @import topGO 
+#' @param ontology.results A list with two topGO objects: ontology and test as returned by OntologyAnalysis
+#' @importFrom topGO showSigOfNodes 
 #' @export
-setGeneric("PrintOntologyGraph", function (ontology.result) standardGeneric("PrintOntologyGraph"))
+setGeneric("PrintOntologyGraph", function (object) standardGeneric("PrintOntologyGraph"))
 #' @export
-setMethod("PrintOntologyGraph", "seurat",  function (ontology.result) {
-    showSigOfNodes(ontology.result[["ontology"]], score(ontology.result[["test"]]), firstSigNodes=10, useInfo="all")
+setMethod("PrintOntologyGraph", "seurat",  function (object) {
+    showSigOfNodes(object@ontology.results[["ontology"]], 
+                   score(object@ontology.results[["test"]]), 
+                   firstSigNodes=10, 
+                   useInfo="all"
+                   )
   }
 )
 
@@ -4630,16 +4642,16 @@ setMethod("PrintOntologyGraph", "seurat",  function (ontology.result) {
 #' Creates a data frame with GO terms and enrichment p-values as given
 #' by Fisher's exact test. It takes as an input the result of OntologyAnalysos
 #' 
-#' @param ontology.result A list with two topGO objects: ontology and test as returned by OntologyAnalysis
+#' @param ontology.results A list with two topGO objects: ontology and test as returned by OntologyAnalysis
 #' @param pval.cutoff p-value above which GO terms will be excluted. Default is 1
-#' @import topGO 
+#' @importFrom topGO GenTable
 #' @export
-setGeneric("GetOntologyTable", function (ontology.result, pval.cutoff = 1) standardGeneric("GetOntologyTable"))
+setGeneric("GetOntologyTable", function (object, pval.cutoff = 1) standardGeneric("GetOntologyTable"))
 #' @export
 #' 
-setMethod("GetOntologyTable", "seurat",  function (ontology.result, pval.cutoff = 1) {
-    ret <- GenTable(ontology.result[["ontology"]], 
-                    pval = ontology.result[["test"]], 
+setMethod("GetOntologyTable", "seurat",  function (object, pval.cutoff = 1) {
+    ret <- GenTable(object@ontology.results[["ontology"]], 
+                    pval = object@ontology.results[["test"]], 
                     orderBy = "pval", 
                     ranksOf = "pval", 
                     topNodes = 1000

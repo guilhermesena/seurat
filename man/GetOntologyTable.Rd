@@ -4,12 +4,12 @@
 \alias{GetOntologyTable}
 \title{Get Ontology Table from Ontology Analysis}
 \usage{
-GetOntologyTable(ontology.result, pval.cutoff = 1)
+GetOntologyTable(object, pval.cutoff = 1)
 }
 \arguments{
-\item{ontology.result}{A list with two topGO objects: ontology and test as returned by OntologyAnalysis}
-
 \item{pval.cutoff}{p-value above which GO terms will be excluted. Default is 1}
+
+\item{ontology.results}{A list with two topGO objects: ontology and test as returned by OntologyAnalysis}
 }
 \description{
 Creates a data frame with GO terms and enrichment p-values as given

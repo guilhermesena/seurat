@@ -52,7 +52,7 @@ in either of the two populations. Meant to speed up the function by not testing 
 \item{min.cells}{Minimum number of cells expressing the gene in at least one of the two groups}
 }
 \value{
-Matrix containing a ranked list of putative markers, and associated
+A seurat object with marker genes found for each cluster on slot cluster.markers
 statistics (p-values, ROC score, etc.)
 }
 \description{

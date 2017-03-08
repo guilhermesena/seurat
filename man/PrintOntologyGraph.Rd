@@ -4,10 +4,10 @@
 \alias{PrintOntologyGraph}
 \title{Plot Ontology Graph from OntologyAnalysis}
 \usage{
-PrintOntologyGraph(ontology.result)
+PrintOntologyGraph(object)
 }
 \arguments{
-\item{ontology.result}{A list with two topGO objects: ontology and test as returned by OntologyAnalysis}
+\item{ontology.results}{A list with two topGO objects: ontology and test as returned by OntologyAnalysis}
 }
 \description{
 A function that gets the output of a TopGO analysis as outputted by OntologyAnalysis

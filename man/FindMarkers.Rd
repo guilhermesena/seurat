@@ -48,7 +48,7 @@ in either of the two populations. Meant to speed up the function by not testing 
 \item{min.cells}{Minimum number of cells expressing the gene in at least one of the two groups}
 }
 \value{
-Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
+Seurat Object with cluster.markers object filled
 }
 \description{
 Finds markers (differentially expressed genes) for identity classes
