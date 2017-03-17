@@ -7,7 +7,7 @@
 DimPlot(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2,
   cells.use = NULL, pt.size = 3, do.return = FALSE, do.bare = FALSE,
   cols.use = NULL, group.by = "ident", pt.shape = NULL,
-  do.label = FALSE, label.size = 1, no.legend = FALSE)
+  do.label = FALSE, label.size = 1, no.legend = FALSE, main = "")
 }
 \arguments{
 \item{object}{Seurat object}
@@ -40,6 +40,8 @@ cell attribute (that can be pulled with FetchData) allowing for both different c
 \item{label.size}{Sets size of labels}
 
 \item{no.legend}{Setting to TRUE will remove the legend}
+
+\item{main}{Optional, title on top of the plot}
 }
 \value{
 If do.return==TRUE, returns a ggplot2 object. Otherwise, only
