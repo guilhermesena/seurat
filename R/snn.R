@@ -63,18 +63,6 @@ setMethod("BuildSNN", signature = "seurat",
       w <- CalcSNNDense(object, n.cells, nn.large, nn.ranked, prune.SNN,
                         print.output)
   }
-  if (plot.SNN) {
-    if(length(object@tsne.rot) < 1) {
-      warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
-    }
-    else{
-      net <- graph.adjacency(w, mode = "undirected", weighted = TRUE,
-                             diag = FALSE)
-      plot.igraph(net, layout = as.matrix(object@tsne.rot),
-                  edge.width = E(net)$weight, vertex.label = NA,
-                  vertex.size = 0)
-    }
-  }
 
   #only allow one of the snn matrix slots to be filled
   object@snn.k <- k.param
@@ -85,7 +73,61 @@ setMethod("BuildSNN", signature = "seurat",
     object@snn.dense <- w
     object@snn.sparse <- sparseMatrix(1, 1, x = 1)
   }
-  return(object)
+    return(object)
+})
+
+#' @include seurat.R
+NULL
+#' SNN Graph Plotting
+#'
+#' Plots the Shared Nearest Neighbor (SNN) Graph built
+#' with the BuiltSNN function
+#'
+#'
+#' @param object Seurat object
+#' @param color.by.cluster Whether or not nodes should be colored by cluster
+#' @param tsne.layout Whether or not to use TSNE as graph layout
+#' @importFrom igraph plot.igraph graph.adjlist graph.adjacency E V
+#' @return The plot.igraph object
+#' @export
+setGeneric("PlotSNN", function(object, color.by.cluster = F, tsne.layout=F)
+  standardGeneric("PlotSNN"))
+
+#' @export
+setMethod("PlotSNN", signature = "seurat",
+          function(object, color.by.cluster = F, tsne.layout=F) {
+    if(length(object@snn.dense) <= 1 & length(object@snn.sparse <= 1)) {
+      stop("SNN Graph not build. Please run BuildSNN() first")
+    }
+  
+    if(tsne.layout ==T & length(object@tsne.rot) < 1) {
+      stop("To use TSNE Layout please use RunTSNE() first")
+    }
+  
+    if(color.by.cluster == T & length(object@ident) < 1) {
+      stop("To color points by cluster, ")
+    }
+    
+    # Uses dense SNN when available
+
+    adj.matrix <- object@snn.sparse
+    if(length(object@snn.dense) > 1) {
+      adj.matrix <- object@snn.dense
+    }
+    net <- graph.adjacency(adj.matrix, 
+                           mode = "undirected", weighted = TRUE,
+                           diag = FALSE)
+    
+    V(net)$size <- 1
+    if(color.by.cluster) {
+      V(net)$color <- object@ident
+    }
+    
+    layout <- layout.fruchterman.reingold
+    if(tsne.layout) layout <- as.matrix(object@tsne.rot)
+    
+    plot.igraph(net, layout = layout,
+                edge.width = E(net)$weight, vertex.label = NA)
 })
 
 CalcSNNSparse <- function(object, n.cells, k.param, nn.large, nn.ranked,

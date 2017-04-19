@@ -44,12 +44,13 @@ Imports:
     ranger
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3
-Collate:
+Collate: 
     'RcppExports.R'
     'seurat.R'
     'cluster_determination.R'
     'cluster_validation.R'
     'deprecated_functions.R'
+    'kl-beta.R'
     'seuratFxns.R'
     'snn.R'
     'tSNE_project.R'
