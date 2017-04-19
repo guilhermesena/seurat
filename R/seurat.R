@@ -990,6 +990,7 @@ setMethod("SubsetData","seurat",
             }
             cells.use=ainb(cells.use,object@cell.names)
             cells.use = WhichCells(object, cells.use = cells.use, max.cells.per.ident = max.cells.per.ident, random.seed = random.seed)
+            object@raw.data=object@raw.data[,cells.use]
             object@data=object@data[,cells.use]
             if(!(is.null(object@scale.data))) {
               if (length(colnames(object@scale.data)>0)) {
