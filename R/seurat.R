@@ -59,7 +59,7 @@ seurat <- setClass("seurat", slots =
                        jackStraw.fakePC = "data.frame",jackStraw.empP.full="data.frame",pca.x.full="data.frame", kmeans.col="list",mean.var="data.frame", imputed="data.frame",mix.probs="data.frame",
                        mix.param="data.frame",final.prob="data.frame",insitu.matrix="data.frame",
                        tsne.rot="data.frame", ica.rot="data.frame", ica.x="data.frame", ica.obj="list",cell.names="vector",cluster.tree="list",
-                       snn.sparse="dgCMatrix", snn.dense="matrix", snn.k="numeric", pcs.to.keep="list",
+                       snn.sparse="dgCMatrix", snn.dense="matrix", snn.k="numeric", pcs.to.keep="integer",
                        cluster.markers="data.frame",
                        ontology.results="list"))
 
