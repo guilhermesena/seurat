@@ -903,7 +903,7 @@ setMethod("PlotClusterTree","seurat",
 #' @return Returns no value, displays a plot
 #' @export
 setGeneric("PlotNoiseModel", function(object, cell.ids=c(1,2), col.use="black",lwd.use=2,do.new=TRUE,x.lim=10,...) standardGeneric("PlotNoiseModel"))
-#' @export object@data.info[, "saturation"]
+#' @export 
 setMethod("PlotNoiseModel","seurat",
           function(object, cell.ids=c(1,2), col.use="black",lwd.use=2,do.new=TRUE,x.lim=10,...) {
             cell.coefs=object@drop.coefs[cell.ids,]
