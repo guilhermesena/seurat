@@ -4,7 +4,7 @@
 \alias{JackStrawPlot}
 \title{JackStraw Plot}
 \usage{
-JackStrawPlot(object, PCs = 1:5, nCol = 3, score.thresh = 1e-05,
+JackStrawPlot(object, PCs = 1:30, nCol = 3, score.thresh = 1e-05,
   plot.x.lim = 0.1, plot.y.lim = 0.3)
 }
 \arguments{

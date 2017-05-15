@@ -52,7 +52,7 @@ setGeneric("FindClusters", function(object, genes.use = NULL, pc.use = NULL,
   standardGeneric("FindClusters"))
 #' @export
 setMethod("FindClusters", signature = "seurat",
-          function(object, genes.use = NULL, pc.use = NULL, k.param = 30,
+          function(object, genes.use = NULL, pc.use = object@pcs.to.keep, k.param = 30,
                    k.scale = 25, plot.SNN = FALSE, prune.SNN = 1/15,
                    save.SNN = FALSE, reuse.SNN = FALSE, do.sparse = FALSE, 
                    modularity.fxn = 1, resolution = 0.8, algorithm = 1,

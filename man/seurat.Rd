@@ -44,7 +44,7 @@ are listed below.
    \item{\code{snn.sparse}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
    \item{\code{snn.dense}:}{\code{"matrix"}, Dense matrix object representation of the SNN graph }
    \item{\code{snn.k}:}{\code{"numeric"}, k used in the construction of the SNN graph }
-
+   \item{\code{pcs.to.keep}:\code{"list"}, Principal Components chosen to keep}
 }
 }
 

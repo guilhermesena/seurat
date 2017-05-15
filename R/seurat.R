@@ -40,7 +40,7 @@
 #'    \item{\code{snn.sparse}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
 #'    \item{\code{snn.dense}:}{\code{"matrix"}, Dense matrix object representation of the SNN graph }
 #'    \item{\code{snn.k}:}{\code{"numeric"}, k used in the construction of the SNN graph }
-#'
+#'    \item{\code{pcs.to.keep}:\code{"list"}, Principal Components chosen to keep}
 #'}
 #' @name seurat
 #' @rdname seurat
@@ -59,7 +59,7 @@ seurat <- setClass("seurat", slots =
                        jackStraw.fakePC = "data.frame",jackStraw.empP.full="data.frame",pca.x.full="data.frame", kmeans.col="list",mean.var="data.frame", imputed="data.frame",mix.probs="data.frame",
                        mix.param="data.frame",final.prob="data.frame",insitu.matrix="data.frame",
                        tsne.rot="data.frame", ica.rot="data.frame", ica.x="data.frame", ica.obj="list",cell.names="vector",cluster.tree="list",
-                       snn.sparse="dgCMatrix", snn.dense="matrix", snn.k="numeric",
+                       snn.sparse="dgCMatrix", snn.dense="matrix", snn.k="numeric", pcs.to.keep="list",
                        cluster.markers="data.frame",
                        ontology.results="list"))
 
@@ -219,6 +219,44 @@ setMethod("Read10X", "character", function(data.dir = NULL){
   full_data <- do.call(cbind, full_data)
   return(full_data)
 })
+
+#' Good-Turing QC
+#' 
+#' @param object Seurat object
+#' @return A density plot with the expected unobserved expression for all cells in the dataset
+setGeneric("CalculateSaturation", function(object) standardGeneric("CalculateSaturation"))
+#' @export
+setMethod("CalculateSaturation", "seurat",
+          function(object) {
+            if(is.null(object@raw.data)) {
+              stop("Seurat object has no raw data! Please fill the raw.data object first")
+            }
+            m <- as.matrix(object@raw.data)
+            good.turing <- 1 - colSums(m == 1)/colSums(m)
+            names(good.turing) <- colnames(object@raw.data)
+            
+            # Add saturation to data info
+            return (AddMetaData(object, good.turing, "saturation"))
+          }
+)
+
+#' Saturation Plot
+#' 
+#' @param object Seurat object
+#' @return A density plot with the expected unobserved expression for all cells in the dataset
+setGeneric("PlotSaturation", function(object) standardGeneric("PlotSaturation"))
+#' @export
+setMethod("PlotSaturation", "seurat",
+          function(object) {
+            if(is.null(object@data.info[, "saturation"])) {
+              stop("Please run CalculateSaturation to find cell saturations");
+            }
+            
+            d <- density(object@data.info[, "saturation"])
+            return(plot(d, col = "red", main = "Overview of Cell Saturation", xlab = "Expected Saturation", ylab = "Density of Cells"))
+          }
+)
+
 
 #' Scale and center the data
 #'
@@ -865,7 +903,7 @@ setMethod("PlotClusterTree","seurat",
 #' @return Returns no value, displays a plot
 #' @export
 setGeneric("PlotNoiseModel", function(object, cell.ids=c(1,2), col.use="black",lwd.use=2,do.new=TRUE,x.lim=10,...) standardGeneric("PlotNoiseModel"))
-#' @export
+#' @export object@data.info[, "saturation"]
 setMethod("PlotNoiseModel","seurat",
           function(object, cell.ids=c(1,2), col.use="black",lwd.use=2,do.new=TRUE,x.lim=10,...) {
             cell.coefs=object@drop.coefs[cell.ids,]
@@ -1160,7 +1198,7 @@ setMethod("ProjectPCA", "seurat",
 setGeneric("RunTSNE", function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,...) standardGeneric("RunTSNE"))
 #' @export
 setMethod("RunTSNE", "seurat",
-          function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,...) {
+          function(object,cells.use=NULL,dims.use=object@pcs.to.keep,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,...) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             if (is.null(genes.use)) {
               dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,dims.use,sep="")
@@ -4048,7 +4086,7 @@ setMethod("AddMetaData","seurat",
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
 #' @import gridExtra
 #' @export
-setGeneric("JackStrawPlot", function(object,PCs=1:5, nCol=3, score.thresh=1e-5,plot.x.lim=0.1,plot.y.lim=0.3)  standardGeneric("JackStrawPlot"))
+setGeneric("JackStrawPlot", function(object,PCs=1:30, nCol=3, score.thresh=1e-5,plot.x.lim=0.1,plot.y.lim=0.3)  standardGeneric("JackStrawPlot"))
 #' @export
 setMethod("JackStrawPlot","seurat",
           function(object,PCs=1:5, nCol=3, score.thresh=1e-5,plot.x.lim=0.1,plot.y.lim=0.3) {
